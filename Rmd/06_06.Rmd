@@ -1,0 +1,106 @@
+---
+title: "2023-06-05"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+date: "2023-06-05"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(pacman)
+p_load(tidyverse,tidytuesdayR,janitor,cowplot,here)
+here<-here::here
+
+```
+
+## TidyTuesday for 2023-06-05
+### World generation
+
+```{r code, echo=TRUE, warning=FALSE}
+data <- read_csv("owid-energy-data.csv", show_col_types = FALSE)
+#summary(data)
+#colnames(data)
+e_data <- data |>filter(country=='World')|>select(year,electricity_generation)|> na.omit()
+plot(e_data)
+r_data <- data |>filter(country=='World')|>select(year,renewables_electricity)|> na.omit()
+plot(r_data)
+f_data <- data |>filter(country=='World')|>select(year,fossil_electricity)|> na.omit()
+plot(f_data)
+efr_data <- data |>filter(country=='World')|>select(year,electricity_generation,fossil_electricity,renewables_electricity)|> na.omit()
+
+ggplot(efr_data, aes(x = year)) +
+  geom_line(aes(y = electricity_generation, color="Electricity Generation")) +
+  geom_line(aes(y = fossil_electricity, color ="Fossil Electricity")) +
+  geom_line(aes(y = renewables_electricity,color= "Renewables Electricity")) +
+  labs(color = "Energy Sources") +
+  theme_cowplot()
+  
+
+```
+
+## Growth of renewable electricty in the world over the years
+
+```{r echo=TRUE, warning=FALSE}
+r_data <- data |>
+  filter(country=='World')|>
+  select(year,renewables_electricity)|> 
+  na.omit() |>
+  mutate(growth = ((renewables_electricity- lag(renewables_electricity))/lag(renewables_electricity)* 100) ) 
+
+ggplot(r_data, aes(x=year,y=growth)) +
+  geom_point()+
+  geom_smooth()
+```
+```{r echo=TRUE}
+f_data <- data |>
+  filter(country=='World')|>
+  select(year,fossil_electricity)|> 
+  na.omit() |>
+  mutate(growth = ((fossil_electricity- lag(fossil_electricity))/lag(fossil_electricity)* 100) ) 
+
+ggplot(f_data, aes(x=year,y=growth)) +
+  geom_point() +
+  geom_smooth()
+```
+
+
+## Comparison of Renewables vs Electricity generation 
+
+```{r echo=TRUE, warning=FALSE}
+rf_data_growth <- merge(r_data, f_data, by = "year") 
+
+ggplot(rf_data_growth, aes(x = year)) +
+  geom_smooth(aes(y = growth.x, color = "Renewable"),se=FALSE) +
+  geom_smooth(aes(y = growth.y, color = "Fossil"), se=FALSE) +
+  theme_cowplot() +
+  labs(title="Global Electricity Fossil vs Renewable growth", subtitle = "Renewable is growing rapidly after 2010") +
+  labs(color="Energy Sources", caption = "Data from tidytuesday, Our world in data")
+
+  #annotate("text", label="Renewable Growth", x=2019, y=5.2, color = "blue")
+  
+```
+
+## India : Coal is king
+```{r echo=TRUE}
+india_f_data <- data |>
+  filter(country=="India") |>
+  filter (year>1975)
+
+india_f_data <- data.frame( t(na.omit(t(india_f_data))))
+india_f_data$coal_prod_per_capita <- round(as.numeric(india_f_data$coal_prod_per_capita),2)
+india_f_data$gas_prod_per_capita <- round(as.numeric(india_f_data$gas_prod_per_capita),2)
+india_f_data$oil_prod_per_capita <- round(as.numeric(india_f_data$oil_prod_per_capita),2)
+
+ggplot(india_f_data, aes(x = year)) +
+  geom_point(aes(y = oil_prod_per_capita,color = "Oil")) +
+  geom_point(aes(y = coal_prod_per_capita , color ="Coal")) +
+  geom_point(aes(y = gas_prod_per_capita, color ="Gas")) +
+  labs(color = "Production per capital") +
+  theme_cowplot()
+  
+```
+
+

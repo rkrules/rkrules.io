@@ -1,0 +1,78 @@
+---
+title: "Tidy Tuesday 05_30"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    code_folding: hide
+date: "2023-05-30"
+---
+
+```{r setup, echo=FALSE, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(tidyverse)
+library(cowplot)
+library(magick)
+library(tidytuesdayR)
+library(here)
+here <- here::here
+```
+
+## Tidy Tuesdsay for 5.30
+
+```{r data}
+data <- tidytuesdayR::tt_load('2023-05-30')
+summary(data)
+data_centenarians <- tibble( data$centenarians)
+```
+## Data Summary
+```{r centenarians}
+summary(data_centenarians)
+```
+## Number of cenetarians still alive
+
+```{r alive}
+data_centenarians |>
+  select(everything()) |>
+  filter(still_alive != 'deceased') |>
+  select(!death_date)
+```
+## Ratio of women and men centenarians 
+
+```{r WomenVsMen}
+data_centenarians %>%
+  group_by(gender) %>%
+  summarise(n = n()) %>%
+  mutate(p = n / sum(n) * 100) %>%
+  bind_rows(
+    tibble(
+      gender = "Total",
+      n = sum(.$n),
+      p = sum(.$p)
+    )
+  )
+```
+## Longest living
+```{r LonestLiving}
+ages <- data_centenarians |>
+  filter(still_alive == 'deceased' ) |>
+  mutate (age = (death_date - birth_date)/365) |>
+  select(age,rank) |>
+  arrange(desc(age))
+
+plot(ages)
+```
+```{r Countries}
+data_centenarians %>%
+  group_by(place_of_death_or_residence) %>%
+  summarise(n = n()) %>%
+  mutate(p = n / sum(n) * 100) %>%
+  arrange(desc(p)) %>%
+  bind_rows(
+    tibble(
+      place_of_death_or_residence = "Total",
+      n = sum(.$n),
+      p = sum(.$p)
+    )
+  )
+```
